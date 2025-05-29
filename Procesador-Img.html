@@ -1,0 +1,446 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Procesador de Imágenes</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #f3f4f6; /* Tailwind gray-100 */
+            display: flex;
+            justify-content: center;
+            align-items: flex-start;
+            min-height: 100vh;
+            padding: 2rem;
+            box-sizing: border-box;
+        }
+        .container {
+            background-color: #ffffff; /* Tailwind white */
+            padding: 2.5rem;
+            border-radius: 0.75rem; /* Tailwind rounded-xl */
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05); /* Tailwind shadow-xl */
+            width: 100%;
+            max-width: 960px; /* md:max-w-3xl, lg:max-w-4xl */
+        }
+        h1, h2 {
+            color: #1f2937; /* Tailwind gray-900 */
+            text-align: center;
+            margin-bottom: 1.5rem;
+            font-weight: 700; /* Tailwind font-bold */
+        }
+        .section-card {
+            background-color: #f9fafb; /* Tailwind gray-50 */
+            padding: 1.5rem;
+            border-radius: 0.5rem; /* Tailwind rounded-lg */
+            border: 1px solid #e5e7eb; /* Tailwind border-gray-200 */
+            margin-bottom: 1.5rem;
+        }
+        input[type="file"] {
+            display: none;
+        }
+        .upload-button {
+            background-color: #2563eb; /* Tailwind blue-700 */
+            color: white;
+            padding: 0.75rem 1.5rem;
+            border-radius: 0.5rem; /* Tailwind rounded-lg */
+            cursor: pointer;
+            transition: background-color 0.2s ease-in-out;
+            display: inline-block;
+            font-weight: 600; /* Tailwind font-semibold */
+        }
+        .upload-button:hover {
+            background-color: #1d4ed8; /* Tailwind blue-800 */
+        }
+        .action-button {
+            background-color: #6b7280; /* Tailwind gray-500 */
+            color: white;
+            padding: 0.75rem 1.5rem;
+            border: none;
+            border-radius: 0.5rem; /* Tailwind rounded-lg */
+            cursor: pointer;
+            transition: background-color 0.2s ease-in-out;
+            font-weight: 600;
+        }
+        .action-button:hover {
+            background-color: #4b5563; /* Tailwind gray-600 */
+        }
+        .primary-button {
+            background-color: #10b981; /* Tailwind emerald-500 */
+        }
+        .primary-button:hover {
+            background-color: #059669; /* Tailwind emerald-600 */
+        }
+        .image-previews {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 1rem;
+            justify-content: center;
+            margin-top: 1.5rem;
+        }
+        .image-card {
+            border: 1px solid #d1d5db; /* Tailwind gray-300 */
+            border-radius: 0.5rem; /* Tailwind rounded-lg */
+            padding: 0.75rem;
+            width: 160px;
+            text-align: center;
+            box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05); /* Tailwind shadow-sm */
+            position: relative;
+            background-color: #ffffff;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+        .image-card img {
+            max-width: 100%;
+            height: 100px;
+            object-fit: contain; /* Asegura que la imagen se ajuste sin bordes negros */
+            display: block;
+            margin: 0 auto 0.5rem;
+            border-radius: 0.25rem; /* Tailwind rounded-md */
+        }
+        .image-card p {
+            font-size: 0.875rem; /* Tailwind text-sm */
+            word-break: break-all;
+            margin-top: 0.25rem;
+            color: #4b5563; /* Tailwind gray-600 */
+            flex-grow: 1; /* Permite que el párrafo ocupe el espacio restante */
+        }
+        .image-card button {
+            background-color: #ef4444; /* Tailwind red-500 */
+            color: white;
+            border: none;
+            padding: 0.375rem 0.75rem;
+            border-radius: 0.375rem; /* Tailwind rounded-md */
+            cursor: pointer;
+            font-size: 0.75rem; /* Tailwind text-xs */
+            transition: background-color 0.2s ease-in-out;
+            margin-top: 0.75rem;
+        }
+        .image-card button:hover {
+            background-color: #dc2626; /* Tailwind red-600 */
+        }
+        .radio-group {
+            display: flex;
+            justify-content: center;
+            gap: 1.5rem;
+            margin-bottom: 1.5rem;
+        }
+        .radio-group input[type="radio"] {
+            margin-right: 0.5rem;
+        }
+        .quality-section {
+            text-align: center;
+            margin-bottom: 1.5rem;
+        }
+        .quality-section input[type="range"] {
+            width: 80%;
+            margin-top: 0.75rem;
+        }
+        .processed-links {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 1rem;
+            justify-content: center;
+            margin-top: 1.5rem;
+        }
+        .processed-links a {
+            display: block;
+            background-color: #2563eb; /* Tailwind blue-700 */
+            color: white;
+            padding: 0.625rem 1rem;
+            border-radius: 0.5rem; /* Tailwind rounded-lg */
+            text-decoration: none;
+            transition: background-color 0.2s ease-in-out;
+            font-weight: 600;
+        }
+        .processed-links a:hover {
+            background-color: #1d4ed8; /* Tailwind blue-800 */
+        }
+        .message-box {
+            background-color: #fef2f2; /* Tailwind red-50 */
+            color: #b91c1c; /* Tailwind red-700 */
+            border: 1px solid #ef4444; /* Tailwind red-500 */
+            padding: 1rem;
+            border-radius: 0.5rem;
+            margin-top: 1.5rem;
+            text-align: center;
+            font-weight: 500;
+        }
+        .hidden {
+            display: none;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Procesador de Imágenes</h1>
+
+        <div class="section-card">
+            <div class="flex flex-col sm:flex-row justify-center items-center gap-4">
+                <input type="file" id="imageUpload" multiple accept="image/jpeg, image/png, image/webp">
+                <label for="imageUpload" class="upload-button">Cargar Imágenes</label>
+                <button id="refreshApp" class="action-button">Refrescar Aplicación</button>
+            </div>
+        </div>
+
+        <div class="section-card">
+            <h2>Imágenes Cargadas:</h2>
+            <div id="imagePreviews" class="image-previews">
+                </div>
+            <div id="noImagesMessage" class="text-center text-gray-500 mt-4 hidden">
+                No hay imágenes cargadas.
+            </div>
+        </div>
+
+        <div class="section-card">
+            <h2>Opciones de Procesamiento:</h2>
+            <div class="radio-group">
+                <div class="flex items-center">
+                    <input type="radio" id="grayscale" name="conversionOption" value="grayscale" checked class="h-4 w-4 text-blue-600 border-gray-300 focus:ring-blue-500 rounded">
+                    <label for="grayscale" class="ml-2 text-gray-700">Escala de Grises</label>
+                </div>
+                <div class="flex items-center">
+                    <input type="radio" id="blackAndWhite" name="conversionOption" value="black_and_white" class="h-4 w-4 text-blue-600 border-gray-300 focus:ring-blue-500 rounded">
+                    <label for="blackAndWhite" class="ml-2 text-gray-700">Blanco y Negro</label>
+                </div>
+            </div>
+
+            <div class="quality-section">
+                <label for="qualityRange" class="block text-gray-700 font-semibold mb-2">Calidad de Imagen (JPG): <span id="qualityValue">80</span>%</label>
+                <input type="range" id="qualityRange" min="10" max="100" value="80" class="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer">
+            </div>
+
+            <div class="flex justify-center">
+                <button id="processImages" class="action-button primary-button">Procesar y Descargar</button>
+            </div>
+        </div>
+
+        <div id="downloadSection" class="section-card hidden">
+            <h2>Imágenes Procesadas:</h2>
+            <div id="processedImageLinks" class="processed-links">
+                </div>
+        </div>
+
+        <div id="messageBox" class="message-box hidden"></div>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const imageUpload = document.getElementById('imageUpload');
+            const imagePreviews = document.getElementById('imagePreviews');
+            const qualityRange = document.getElementById('qualityRange');
+            const qualityValue = document.getElementById('qualityValue');
+            const processImagesButton = document.getElementById('processImages');
+            const refreshAppButton = document.getElementById('refreshApp');
+            const downloadSection = document.getElementById('downloadSection');
+            const processedImageLinks = document.getElementById('processedImageLinks');
+            const messageBox = document.getElementById('messageBox');
+            const noImagesMessage = document.getElementById('noImagesMessage');
+
+            let uploadedFiles = []; // Stores the uploaded File objects
+
+            // Function to display messages to the user (errors, info)
+            function showMessage(message, type = 'error') {
+                messageBox.textContent = message;
+                messageBox.classList.remove('hidden', 'bg-red-50', 'text-red-700', 'border-red-500', 'bg-green-50', 'text-green-700', 'border-green-500');
+                if (type === 'error') {
+                    messageBox.classList.add('bg-red-50', 'text-red-700', 'border-red-500');
+                } else if (type === 'success') {
+                    messageBox.classList.add('bg-green-50', 'text-green-700', 'border-green-500');
+                }
+                messageBox.classList.remove('hidden');
+            }
+
+            // Function to hide the message
+            function hideMessage() {
+                messageBox.classList.add('hidden');
+            }
+
+            // Update quality value when slider is moved
+            qualityRange.addEventListener('input', () => {
+                qualityValue.textContent = qualityRange.value;
+            });
+
+            // Handle image upload
+            imageUpload.addEventListener('change', (event) => {
+                hideMessage();
+                for (const file of event.target.files) {
+                    if (file.type.startsWith('image/')) {
+                        // Ensure no duplicate files by name and size
+                        if (!uploadedFiles.some(f => f.name === file.name && f.size === file.size)) {
+                            uploadedFiles.push(file);
+                            renderImagePreview(file);
+                        } else {
+                            showMessage(`La imagen "${file.name}" ya ha sido cargada.`, 'info');
+                        }
+                    } else {
+                        showMessage('Solo se permiten archivos de imagen (JPEG, PNG, WebP).');
+                    }
+                }
+                // Clear the input to allow re-uploading the same file if cancelled and re-uploaded
+                imageUpload.value = '';
+                updateNoImagesMessage();
+            });
+
+            // Render image preview
+            function renderImagePreview(file) {
+                const reader = new FileReader();
+                reader.onload = (e) => {
+                    const imageCard = document.createElement('div');
+                    imageCard.classList.add('image-card');
+                    imageCard.dataset.filename = file.name; // Store the filename to identify it
+
+                    const img = document.createElement('img');
+                    img.src = e.target.result;
+                    img.alt = file.name;
+
+                    const fileNamePara = document.createElement('p');
+                    fileNamePara.textContent = file.name;
+
+                    const cancelButton = document.createElement('button');
+                    cancelButton.textContent = 'Cancelar';
+                    cancelButton.addEventListener('click', () => {
+                        imageCard.remove();
+                        uploadedFiles = uploadedFiles.filter(f => !(f.name === file.name && f.size === file.size));
+                        if (uploadedFiles.length === 0) {
+                            downloadSection.classList.add('hidden'); // Hide download section if no images
+                            processedImageLinks.innerHTML = '';
+                        }
+                        updateNoImagesMessage();
+                    });
+
+                    imageCard.appendChild(img);
+                    imageCard.appendChild(fileNamePara);
+                    imageCard.appendChild(cancelButton);
+                    imagePreviews.appendChild(imageCard);
+                };
+                reader.readAsDataURL(file);
+            }
+
+            // Update "No images loaded" message
+            function updateNoImagesMessage() {
+                if (uploadedFiles.length === 0) {
+                    noImagesMessage.classList.remove('hidden');
+                } else {
+                    noImagesMessage.classList.add('hidden');
+                }
+            }
+
+            // Process images and download
+            processImagesButton.addEventListener('click', async () => {
+                if (uploadedFiles.length === 0) {
+                    showMessage('Por favor, carga al menos una imagen antes de procesar.', 'error');
+                    return;
+                }
+
+                hideMessage();
+                downloadSection.classList.add('hidden');
+                processedImageLinks.innerHTML = ''; // Clear previous download links
+
+                const conversionOption = document.querySelector('input[name="conversionOption"]:checked').value;
+                const quality = parseInt(qualityRange.value);
+
+                processImagesButton.textContent = 'Procesando...';
+                processImagesButton.disabled = true;
+
+                try {
+                    const processedImagesData = [];
+
+                    for (const file of uploadedFiles) {
+                        const img = new Image();
+                        img.src = URL.createObjectURL(file);
+
+                        await new Promise(resolve => img.onload = resolve); // Wait for the image to load
+
+                        const canvas = document.createElement('canvas');
+                        const ctx = canvas.getContext('2d');
+
+                        canvas.width = img.naturalWidth;
+                        canvas.height = img.naturalHeight;
+
+                        // Draw the image on the canvas
+                        ctx.drawImage(img, 0, 0);
+
+                        const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+                        const data = imageData.data; // Pixel array [R, G, B, A, R, G, B, A, ...]
+
+                        for (let i = 0; i < data.length; i += 4) {
+                            const r = data[i];
+                            const g = data[i + 1];
+                            const b = data[i + 2];
+
+                            let gray;
+                            if (conversionOption === 'grayscale') {
+                                gray = (r + g + b) / 3; // Simple average for grayscale
+                            } else { // black_and_white
+                                gray = (r + g + b) / 3;
+                                // Threshold for strict black and white
+                                gray = gray < 128 ? 0 : 255;
+                            }
+
+                            data[i] = gray;     // Red
+                            data[i + 1] = gray; // Green
+                            data[i + 2] = gray; // Blue
+                            // data[i + 3] = data[i + 3]; // Alpha (keep original)
+                        }
+
+                        ctx.putImageData(imageData, 0, 0);
+
+                        // Convert canvas to JPEG with specified quality
+                        const processedBlob = await new Promise(resolve => {
+                            canvas.toBlob(resolve, 'image/jpeg', quality / 100);
+                        });
+
+                        processedImagesData.push({
+                            name: file.name.split('.')[0] + '_processed.jpg',
+                            blob: processedBlob
+                        });
+
+                        URL.revokeObjectURL(img.src); // Free memory
+                    }
+
+                    // Create a ZIP file if there are processed images
+                    if (processedImagesData.length > 0) {
+                        const zip = new JSZip();
+                        processedImagesData.forEach(imageData => {
+                            zip.file(imageData.name, imageData.blob);
+                        });
+
+                        const zipBlob = await zip.generateAsync({ type: "blob" });
+
+                        const url = URL.createObjectURL(zipBlob);
+                        const downloadLink = document.createElement('a');
+                        downloadLink.href = url;
+                        downloadLink.download = `imagenes_procesadas_${Date.now()}.zip`;
+                        downloadLink.textContent = `Descargar Todas las Imágenes (ZIP)`;
+                        downloadLink.classList.add('processed-link-item', 'px-4', 'py-2', 'rounded-lg', 'bg-blue-600', 'text-white', 'hover:bg-blue-700', 'transition-colors');
+                        processedImageLinks.appendChild(downloadLink);
+                    }
+
+                    downloadSection.classList.remove('hidden');
+                    showMessage('Imágenes procesadas exitosamente.', 'success');
+
+                } catch (error) {
+                    console.error('Error al procesar imágenes:', error);
+                    showMessage('Ocurrió un error al procesar las imágenes. Inténtalo de nuevo.', 'error');
+                } finally {
+                    processImagesButton.textContent = 'Procesar y Descargar';
+                    processImagesButton.disabled = false;
+                }
+            });
+
+            // Refresh the application
+            refreshAppButton.addEventListener('click', () => {
+                location.reload(); // Reload the entire page
+            });
+
+            // Initialize no images message
+            updateNoImagesMessage();
+        });
+    </script>
+</body>
+</html>
